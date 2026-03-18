@@ -1,0 +1,87 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Background */
+.hero {
+  height: 100vh;
+  background: url('https://images.unsplash.com/photo-1504198266285-165a5b9d45e9') no-repeat center/cover;
+  color: white;
+  position: relative;
+}
+
+/* Dark overlay */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+/* Navbar */
+.navbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 40px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.login-btn {
+  background: transparent;
+  border: 1px solid white;
+  padding: 8px 15px;
+  color: white;
+  cursor: pointer;
+}
+
+/* Center content */
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  top: 30%;
+}
+
+.hero-content h1 {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+
+.hero-content p {
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+/* Buttons */
+.actions {
+  margin-top: 30px;
+}
+
+.primary {
+  background: #00c6ff;
+  border: none;
+  padding: 12px 25px;
+  margin: 10px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.secondary {
+  background: transparent;
+  border: 1px solid white;
+  padding: 12px 25px;
+  margin: 10px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+}
