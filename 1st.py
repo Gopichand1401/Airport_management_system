@@ -1,2 +1,0 @@
-a="Gopi"
-print(a)
