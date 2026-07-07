@@ -44,7 +44,7 @@ The system models a working airport back office. Passengers are registered and b
 
 ![ER Diagram](docs/er-diagram.png)
 
-*(Export the ER diagram from the report as `docs/er-diagram.png` so it renders here.)*
+
 
 The schema uses **nested aggregation**: the `Follows` relationship between `Airroutes` and `Flights` is aggregated into a scheduled-flight unit, which is then aggregated again with `Passenger` (via `Books`) to model that a boarding pass is only produced when a specific passenger books a specific flight on a specific route.
 
