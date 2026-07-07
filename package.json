@@ -1,0 +1,14 @@
+{
+  "name": "airport-management-system",
+  "version": "1.0.0",
+  "description": "Airport Management System backend (Express + PostgreSQL)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "cors": "^2.8.5"
+  }
+}
