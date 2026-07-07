@@ -1,0 +1,193 @@
+-- CREATE OR REPLACE VIEW PassengerBookingSummary AS
+-- SELECT 
+--     p.Passenger_ID,
+-- 	p.Name,
+--     b.Booking_ID,
+--     b.Flight_ID,
+--     b.Flight_Date,
+--     b.Booking_Status
+-- FROM Passenger p
+-- JOIN Bookings b ON p.Passenger_ID = b.Passenger_ID;
+-- CREATE OR REPLACE VIEW FlightGateStatus AS
+-- SELECT 
+--     sf.Route_ID,
+--     sf.Flight_ID,
+--     sf.Flight_Date,
+--     sf.Gate_ID,
+--     g.Status AS Gate_Status,
+--     sf.Status AS Flight_Status
+-- FROM Scheduled_Flight sf
+-- JOIN Gates g ON sf.Gate_ID = g.Gate_ID;
+-- CREATE OR REPLACE VIEW LuggageSecurityView AS
+-- SELECT 
+--     l.Luggage_ID,
+--     l.Weight,
+--     l.Security_Status,
+--     b.Passenger_IDS
+-- FROM Luggage l
+-- JOIN Bookings b ON l.Booking_ID = b.Booking_ID;
+
+
+-- -- ============================================
+-- -- VIEW 1: StaffFlightView
+-- -- Purpose : Show which staff manages which flight
+-- --           with full flight and route details
+-- -- ============================================
+
+-- CREATE OR REPLACE VIEW StaffFlightView AS
+-- SELECT
+--     s.Staff_ID,
+--     s.Name              AS Staff_Name,
+--     s.Role,
+--     f.Flight_No,
+--     f.Aircraft_Type,
+--     a1.Airport_Name     AS Origin,
+--     a2.Airport_Name     AS Destination,
+--     sf.Flight_Date,
+--     sf.Departure_Time,
+--     sf.Arrival_Time,
+--     sf.Status           AS Flight_Status
+-- FROM Staff_Manages sm
+-- JOIN Staff            s  ON sm.Staff_ID             = s.Staff_ID
+-- JOIN Scheduled_Flight sf ON sm.Route_ID             = sf.Route_ID
+--                          AND sm.Flight_ID            = sf.Flight_ID
+--                          AND sm.Flight_Date          = sf.Flight_Date
+-- JOIN Flights          f  ON sf.Flight_ID            = f.Flight_ID
+-- JOIN Airroutes        ar ON sf.Route_ID             = ar.Route_ID
+-- JOIN Airport          a1 ON ar.Origin_Airport       = a1.Airport_ID
+-- JOIN Airport          a2 ON ar.Destination_Airport  = a2.Airport_ID;
+
+
+-- -- ============================================
+-- -- VIEW 2: FlightRouteView
+-- -- Purpose : Full flight details with origin,
+-- --           destination, gate and status
+-- -- ============================================
+
+-- CREATE OR REPLACE VIEW FlightRouteView AS
+-- SELECT
+--     sf.Route_ID,
+--     sf.Flight_ID,
+--     f.Flight_No,
+--     f.Aircraft_Type,
+--     f.Capacity,
+--     a1.Airport_Name     AS Origin_Airport,
+--     a1.City             AS Origin_City,
+--     a2.Airport_Name     AS Destination_Airport,
+--     a2.City             AS Destination_City,
+--     ar.Distance_KM,
+--     sf.Flight_Date,
+--     sf.Departure_Time,
+--     sf.Arrival_Time,
+--     g.Gate_Number,
+--     g.Status            AS Gate_Status,
+--     sf.Status           AS Flight_Status
+-- FROM Scheduled_Flight sf
+-- JOIN Flights   f  ON sf.Flight_ID            = f.Flight_ID
+-- JOIN Airroutes ar ON sf.Route_ID             = ar.Route_ID
+-- JOIN Airport   a1 ON ar.Origin_Airport       = a1.Airport_ID
+-- JOIN Airport   a2 ON ar.Destination_Airport  = a2.Airport_ID
+-- JOIN Gates     g  ON sf.Gate_ID              = g.Gate_ID;
+
+
+-- -- ============================================
+-- -- VIEW 3: BookingDetailsView
+-- -- Purpose : Complete booking info with
+-- --           passenger details + flight info
+-- -- ============================================
+
+-- CREATE OR REPLACE VIEW BookingDetailsView AS
+-- SELECT
+--     b.Booking_ID,
+--     b.Booking_Date,
+--     b.Booking_Status,
+--     p.Passenger_ID,
+--     p.Name              AS Passenger_Name,
+--     p.Email,
+--     p.Phone,
+--     p.Passport_Number,
+--     f.Flight_No,
+--     f.Aircraft_Type,
+--     a1.Airport_Name     AS Origin_Airport,
+--     a1.City             AS Origin_City,
+--     a2.Airport_Name     AS Destination_Airport,
+--     a2.City             AS Destination_City,
+--     b.Flight_Date,
+--     sf.Departure_Time,
+--     sf.Arrival_Time,
+--     g.Gate_Number,
+--     sf.Status           AS Flight_Status,
+--     bp.Seat_Number,
+--     bp.Boarding_Group,
+--     bp.Boarding_Time
+-- FROM Bookings b
+-- JOIN Passenger        p  ON b.Passenger_ID           = p.Passenger_ID
+-- JOIN Flights          f  ON b.Flight_ID              = f.Flight_ID
+-- JOIN Scheduled_Flight sf ON b.Route_ID               = sf.Route_ID
+--                          AND b.Flight_ID             = sf.Flight_ID
+--                          AND b.Flight_Date           = sf.Flight_Date
+-- JOIN Airroutes        ar ON b.Route_ID               = ar.Route_ID
+-- JOIN Airport          a1 ON ar.Origin_Airport        = a1.Airport_ID
+-- JOIN Airport          a2 ON ar.Destination_Airport   = a2.Airport_ID
+-- JOIN Gates            g  ON sf.Gate_ID               = g.Gate_ID
+-- LEFT JOIN Boarding_Pass bp ON b.Booking_ID           = bp.Booking_ID;
+
+
+-- -- ============================================
+-- -- VIEW 4: LuggageSummaryView
+-- -- Purpose : Flagged vs Cleared luggage count
+-- --           per flight with passenger details
+-- -- ============================================
+
+-- CREATE OR REPLACE VIEW LuggageSummaryView AS
+-- SELECT
+--     f.Flight_No,
+--     a1.Airport_Name     AS Origin,
+--     a2.Airport_Name     AS Destination,
+--     sf.Flight_Date,
+--     COUNT(l.Luggage_ID)                                         AS Total_Luggage,
+--     SUM(CASE WHEN l.Security_Status = 'Cleared' THEN 1 ELSE 0 END) AS Cleared_Count,
+--     SUM(CASE WHEN l.Security_Status = 'Flagged' THEN 1 ELSE 0 END) AS Flagged_Count,
+--     ROUND(AVG(l.Weight), 2)                                     AS Avg_Weight_KG,
+--     ROUND(SUM(l.Weight), 2)                                     AS Total_Weight_KG
+-- FROM Luggage l
+-- JOIN Bookings         b  ON l.Booking_ID             = b.Booking_ID
+-- JOIN Flights          f  ON b.Flight_ID              = f.Flight_ID
+-- JOIN Scheduled_Flight sf ON b.Route_ID               = sf.Route_ID
+--                          AND b.Flight_ID             = sf.Flight_ID
+--                          AND b.Flight_Date           = sf.Flight_Date
+-- JOIN Airroutes        ar ON b.Route_ID               = ar.Route_ID
+-- JOIN Airport          a1 ON ar.Origin_Airport        = a1.Airport_ID
+-- JOIN Airport          a2 ON ar.Destination_Airport   = a2.Airport_ID
+-- GROUP BY
+--     f.Flight_No,
+--     a1.Airport_Name,
+--     a2.Airport_Name,
+--     sf.Flight_Date;
+
+-- Step 1: Drop the old view first
+-- DROP VIEW IF EXISTS LuggageSecurityView;
+
+-- -- Step 2: Recreate with correct columns
+-- CREATE VIEW LuggageSecurityView AS
+-- SELECT
+--     p.Passenger_ID,
+--     p.Name              AS Passenger_Name,
+--     p.Passport_Number,
+--     b.Flight_ID,
+--     b.Flight_Date,
+--     COUNT(l.Luggage_ID) AS Total_Bags,
+--     COUNT(CASE WHEN l.Security_Status = 'Flagged' THEN 1 END) AS Flagged_Count,
+--     COUNT(CASE WHEN l.Security_Status = 'Cleared' THEN 1 END) AS Cleared_Count,
+--     ROUND(AVG(l.Weight), 2) AS Avg_Weight_KG
+-- FROM Luggage l
+-- JOIN Bookings  b ON l.Booking_ID   = b.Booking_ID
+-- JOIN Passenger p ON b.Passenger_ID = p.Passenger_ID
+-- GROUP BY
+--     p.Passenger_ID,
+--     p.Name,
+--     p.Passport_Number,
+--     b.Flight_ID,
+--     b.Flight_Date;
+
+
