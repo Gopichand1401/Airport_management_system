@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airport Operations Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:      #0E1A2B;
+    --ink-2:    #16263c;
+    --paper:    #EEF1F5;
+    --card:     #FFFFFF;
+    --line:     #D8DFE8;
+    --muted:    #64748B;
+    --text:     #1B2836;
+    --amber:    #E8A33D;
+    --amber-d:  #C9862A;
+    --green:    #1F9D6B;
+    --red:      #D64545;
+    --slate:    #6B7A8D;
+    --blue:     #3B6FB0;
+    --radius:   10px;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--paper);
+    color: var(--text);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; font-size: 14px; }
+  code, .mono { font-family: var(--mono); }
+
+  /* ---------- Login gate ---------- */
+  #gate {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(120% 120% at 50% 0%, #16263c 0%, #0E1A2B 60%);
+    padding: 20px;
+  }
+  .gate-card {
+    width: 100%; max-width: 380px;
+    background: var(--card); border-radius: 14px;
+    padding: 34px 30px; box-shadow: 0 30px 60px rgba(0,0,0,.35);
+  }
+  .gate-brand {
+    font-family: var(--mono); font-weight: 700; letter-spacing: .18em;
+    font-size: 12px; color: var(--amber-d); text-transform: uppercase;
+  }
+  .gate-card h1 { font-size: 24px; margin: 8px 0 4px; }
+  .gate-card p.sub { color: var(--muted); margin: 0 0 22px; font-size: 13px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(232,163,61,.18); }
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600;
+    background: var(--ink); color: #fff; transition: transform .05s, background .15s;
+  }
+  .btn:hover { background: var(--ink-2); }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--amber); color: #221604; }
+  .btn-primary:hover { background: var(--amber-d); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn-ghost:hover { background: #f2f5f9; }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid #f0cccc; }
+  .btn-danger:hover { background: #fdecec; }
+  .btn-sm { padding: 6px 11px; font-size: 12.5px; }
+  .gate-full { width: 100%; margin-top: 6px; }
+  .gate-hint { margin-top: 16px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .gate-hint code { background:#f0f3f7; padding:1px 5px; border-radius:4px; }
+
+  /* ---------- App shell ---------- */
+  #app { display: none; min-height: 100vh; grid-template-columns: 232px 1fr; }
+  #app.on { display: grid; }
+
+  .side {
+    background: var(--ink); color: #cdd8e6;
+    display: flex; flex-direction: column; padding: 0;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .side-brand {
+    padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .side-brand .tag { font-family: var(--mono); font-size: 11px; letter-spacing:.16em; color: var(--amber); text-transform: uppercase; }
+  .side-brand .name { font-family:'Space Grotesk'; color:#fff; font-size: 17px; font-weight: 600; margin-top: 3px; }
+  .nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
+  .nav button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: transparent; border: none; color: #aebccd;
+    padding: 9px 12px; border-radius: 8px; text-align: left;
+    font-size: 13.5px; font-weight: 500; margin-bottom: 2px;
+  }
+  .nav button:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .nav button.active { background: var(--amber); color: #221604; font-weight: 600; }
+  .nav .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity:.5; }
+  .side-user {
+    border-top: 1px solid rgba(255,255,255,.08); padding: 14px 18px;
+    font-size: 12.5px;
+  }
+  .side-user .u-name { color:#fff; font-weight:600; }
+  .side-user .u-role { color: var(--amber); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing:.08em; }
+  .side-user button { margin-top: 10px; }
+
+  .main { padding: 0; overflow-x: hidden; }
+  .topbar {
+    background: var(--ink); color:#fff; padding: 0 26px;
+    height: 52px; display: flex; align-items: center; gap: 14px;
+    border-bottom: 3px solid var(--amber);
+  }
+  .board {
+    font-family: var(--mono); font-weight: 700; letter-spacing:.14em;
+    font-size: 13px; color: var(--amber);
+    display: flex; gap: 3px;
+  }
+  .board span {
+    background: #05101d; color: var(--amber);
+    padding: 3px 6px; border-radius: 3px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.4);
+  }
+  .topbar .clock { margin-left: auto; font-family: var(--mono); font-size: 13px; color:#9fb2c6; }
+
+  .content { padding: 26px; max-width: 1180px; }
+  .page-head { margin-bottom: 18px; }
+  .page-head .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing:.16em; color: var(--amber-d); text-transform: uppercase; }
+  .page-head h2 { font-size: 22px; margin-top: 3px; }
+  .page-head p { color: var(--muted); margin: 4px 0 0; font-size: 13px; }
+
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
+  }
+  .card h3 { font-size: 15px; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+  .card h3 .bar { width: 3px; height: 15px; background: var(--amber); border-radius: 2px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .row .field { margin-bottom: 0; flex: 1; min-width: 150px; }
+  .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px){ .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: #f4f7fa; text-align: left; padding: 9px 12px;
+    font-weight: 600; color: var(--slate); border-bottom: 1px solid var(--line);
+    white-space: nowrap; font-size: 11.5px; text-transform: uppercase; letter-spacing:.04em;
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #eef2f6; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafcfe; }
+  .empty { padding: 22px; text-align: center; color: var(--muted); font-size: 13px; }
+  .cell-id { font-family: var(--mono); color: var(--blue); font-weight: 500; }
+
+  /* ---------- Status pills ---------- */
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; font-family: var(--mono);
+    letter-spacing: .02em;
+  }
+  .pill.green  { background: #e2f4ec; color: #157a52; }
+  .pill.amber  { background: #fbefd8; color: #9a6a12; }
+  .pill.red    { background: #fce4e4; color: #b23434; }
+  .pill.slate  { background: #e8edf2; color: #556577; }
+  .pill.blue   { background: #e4eefa; color: #2c5a90; }
+
+  /* ---------- Boarding pass ---------- */
+  .bp {
+    display: grid; grid-template-columns: 1fr 220px; max-width: 640px;
+    border-radius: 14px; overflow: hidden; box-shadow: 0 12px 30px rgba(14,26,43,.14);
+    font-family: var(--mono);
+  }
+  .bp-main { background: var(--ink); color:#fff; padding: 22px 24px; }
+  .bp-main .bp-tag { color: var(--amber); font-size:11px; letter-spacing:.2em; }
+  .bp-route { display:flex; align-items:center; gap:12px; margin: 14px 0; }
+  .bp-route .code { font-family:'Space Grotesk'; font-size: 30px; font-weight:700; }
+  .bp-route .arrow { color: var(--amber); font-size: 20px; }
+  .bp-grid { display:grid; grid-template-columns: repeat(3,1fr); gap: 14px 10px; margin-top: 12px; }
+  .bp-grid .k { color:#8ba0b6; font-size: 10px; letter-spacing:.1em; text-transform:uppercase; }
+  .bp-grid .v { color:#fff; font-size: 14px; margin-top: 2px; }
+  .bp-stub { background: var(--amber); color:#221604; padding: 22px 20px; display:flex; flex-direction:column; justify-content:space-between; }
+  .bp-stub .k { font-size:10px; letter-spacing:.1em; text-transform:uppercase; opacity:.7; }
+  .bp-stub .v { font-size: 16px; font-weight:700; margin: 2px 0 12px; }
+  .bp-stub .seat { font-size: 34px; font-family:'Space Grotesk'; line-height:1; }
+
+  /* ---------- Toast ---------- */
+  #toasts { position: fixed; bottom: 20px; right: 20px; z-index: 80; display:flex; flex-direction:column; gap:8px; }
+  .toast {
+    background: var(--ink); color:#fff; padding: 11px 16px; border-radius: 9px;
+    font-size: 13px; box-shadow: 0 10px 24px rgba(0,0,0,.22);
+    border-left: 4px solid var(--amber); max-width: 340px; animation: slidein .2s ease;
+  }
+  .toast.ok  { border-left-color: var(--green); }
+  .toast.err { border-left-color: var(--red); }
+  @keyframes slidein { from { transform: translateX(20px); opacity:0; } to { transform:none; opacity:1; } }
+
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .stat-strip { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 18px; }
+  .stat {
+    background: var(--card); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 18px; flex: 1; min-width: 150px;
+  }
+  .stat .n { font-family:'Space Grotesk'; font-size: 26px; font-weight: 700; }
+  .stat .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stat.a .n { color: var(--amber-d); }
+  .stat.g .n { color: var(--green); }
+  .stat.r .n { color: var(--red); }
+
+  @media (max-width: 640px){
+    #app.on { grid-template-columns: 1fr; }
+    .side { position: static; height: auto; flex-direction: row; overflow-x:auto; }
+    .side-brand, .side-user { display:none; }
+    .nav { display:flex; gap:4px; padding: 8px; }
+    .nav button { white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN GATE ===================== -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-brand">Airport Ops · Access</div>
+    <h1>Operations Console</h1>
+    <p class="sub">Sign in with your staff credentials.</p>
+    <div class="field">
+      <label>Username</label>
+      <input id="lg-user" placeholder="e.g. ramesh_k" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="lg-pass" type="password" placeholder="password hash" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary gate-full" onclick="doLogin()">Sign in</button>
+    <div class="gate-hint">
+      Authenticates via <code>StaffLogin()</code>. Demo seed users include
+      <code>ramesh_k</code> (admin), <code>prakash_n</code> (ground), <code>sunita_s</code> (security).
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="tag">Airport Ops</div>
+      <div class="name">Console</div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-panel="dashboard" class="active"><span class="dot"></span>Dashboard</button>
+      <button data-panel="passengers"><span class="dot"></span>Passengers</button>
+      <button data-panel="flights"><span class="dot"></span>Flights</button>
+      <button data-panel="bookings"><span class="dot"></span>Bookings</button>
+      <button data-panel="boarding"><span class="dot"></span>Boarding Pass</button>
+      <button data-panel="luggage"><span class="dot"></span>Luggage</button>
+      <button data-panel="gates"><span class="dot"></span>Gates</button>
+      <button data-panel="network"><span class="dot"></span>Airports &amp; Routes</button>
+      <button data-panel="staff"><span class="dot"></span>Staff</button>
+    </nav>
+    <div class="side-user">
+      <div class="u-name" id="u-name">—</div>
+      <div class="u-role" id="u-role">—</div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" style="color:#cdd8e6;border-color:rgba(255,255,255,.2)">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="board" id="board"></div>
+      <div class="clock" id="clock"></div>
+    </div>
+    <div class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section class="panel on" id="p-dashboard">
+        <div class="page-head">
+          <div class="eyebrow">Overview</div>
+          <h2>Today at a glance</h2>
+          <p>Live view across the schedule, gates, and bookings.</p>
+        </div>
+        <div class="stat-strip" id="dash-stats"></div>
+        <div class="card">
+          <h3><span class="bar"></span>Scheduled flights</h3>
+          <div id="dash-flights" class="table-wrap"><div class="empty">Loading…</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><span class="bar"></span>Gate status</h3>
+            <div id="dash-gates" class="table-wrap"><div class="empty">Loading…</div></div>
+          </div>
+          <div class="card">
+            <h3><span class="bar"></span>Recent bookings</h3>
+            <div id="dash-bookings" class="table-wrap"><div class="empty">Loading…</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PASSENGERS ===== -->
+      <section class="panel" id="p-passengers">
+        <div class="page-head">
+          <div class="eyebrow">Records</div>
+          <h2>Passengers</h2>
+          <p>Search, register, and update passenger records.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Search</h3>
+          <div class="row">
+            <div class="field"><label>Name, email or passport</label><input id="pax-q" placeholder="e.g. Priya"></div>
+            <button class="btn btn-primary" onclick="paxSearch()">Search</button>
+          </div>
+          <div id="pax-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Register new passenger</h3>
+          <div class="grid-2">
+            <div class="field"><label>Full name</label><input id="pax-name"></div>
+            <div class="field"><label>Email</label><input id="pax-email"></div>
+            <div class="field"><label>Phone</label><input id="pax-phone"></div>
+            <div class="field"><label>Passport number</label><input id="pax-passport"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="paxRegister()">Register passenger</button>
+        </div>
+      </section>
+
+      <!-- ===== FLIGHTS ===== -->
+      <section class="panel" id="p-flights">
+        <div class="page-head">
+          <div class="eyebrow">Operations</div>
+          <h2>Flights &amp; schedule</h2>
+          <p>Browse the fleet, review the schedule, and set flight status.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Schedule by date</h3>
+          <div class="row">
+            <div class="field"><label>Flight date</label><input id="fl-date" type="date"></div>
+            <div class="field"><label>Status filter</label>
+              <select id="fl-status">
+                <option value="">Any status</option>
+                <option>On_Time</option><option>Delayed</option>
+                <option>Cancelled</option><option>Departed</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="flByDate()">View schedule</button>
+            <button class="btn btn-ghost" onclick="flRouteView()">Full route view</button>
+          </div>
+          <div id="fl-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><span class="bar"></span>Fleet lookup</h3>
+            <div class="row">
+              <div class="field"><label>Flight no. or aircraft</label><input id="fl-q" placeholder="e.g. AI101"></div>
+              <button class="btn btn-ghost" onclick="flSearch()">Search</button>
+              <button class="btn btn-ghost" onclick="flAll()">All</button>
+            </div>
+            <div id="fl-fleet" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+          </div>
+          <div class="card">
+            <h3><span class="bar"></span>Update flight status</h3>
+            <div class="field"><label>Route ID</label><input id="fs-route" type="number"></div>
+            <div class="field"><label>Flight ID</label><input id="fs-flight" type="number"></div>
+            <div class="field"><label>Flight date</label><input id="fs-date" type="date"></div>
+            <div class="field"><label>New status</label>
+              <select id="fs-status"><option>On_Time</option><option>Delayed</option><option>Cancelled</option><option>Departed</option></select>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="flStatus()">Update status</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== BOOKINGS ===== -->
+      <section class="panel" id="p-bookings">
+        <div class="page-head">
+          <div class="eyebrow">Reservations</div>
+          <h2>Bookings</h2>
+          <p>Create, search, and cancel bookings.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Search bookings</h3>
+          <div class="row">
+            <div class="field"><label>Passenger ID</label><input id="bk-pax" type="number"></div>
+            <div class="field"><label>Status</label>
+              <select id="bk-status"><option value="">Any</option><option>Confirmed</option><option>Cancelled</option></select>
+            </div>
+            <div class="field"><label>Date</label><input id="bk-date" type="date"></div>
+            <button class="btn btn-primary" onclick="bkSearch()">Search</button>
+            <button class="btn btn-ghost" onclick="bkDetails()">Details view</button>
+          </div>
+          <div id="bk-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Create booking</h3>
+          <div class="grid-2">
+            <div class="field"><label>Passenger ID</label><input id="nb-pax" type="number"></div>
+            <div class="field"><label>Route ID</label><input id="nb-route" type="number"></div>
+            <div class="field"><label>Flight ID</label><input id="nb-flight" type="number"></div>
+            <div class="field"><label>Flight date</label><input id="nb-date" type="date"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="bkCreate()">Confirm booking</button>
+          <p class="hint">A boarding pass is generated automatically on confirmation.</p>
+        </div>
+      </section>
+
+      <!-- ===== BOARDING PASS ===== -->
+      <section class="panel" id="p-boarding">
+        <div class="page-head">
+          <div class="eyebrow">Check-in</div>
+          <h2>Boarding pass</h2>
+          <p>Retrieve a complete boarding pass by booking ID.</p>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div class="field"><label>Booking ID</label><input id="bp-id" type="number" placeholder="e.g. 2"></div>
+            <button class="btn btn-primary" onclick="bpLookup()">Retrieve pass</button>
+          </div>
+        </div>
+        <div id="bp-out"></div>
+      </section>
+
+      <!-- ===== LUGGAGE ===== -->
+      <section class="panel" id="p-luggage">
+        <div class="page-head">
+          <div class="eyebrow">Security</div>
+          <h2>Luggage</h2>
+          <p>Check bags in, review clearance status, and clear or flag items.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Search luggage</h3>
+          <div class="row">
+            <div class="field"><label>Booking ID</label><input id="lg-book" type="number"></div>
+            <div class="field"><label>Security status</label>
+              <select id="lg-status"><option value="">Any</option><option>Cleared</option><option>Flagged</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="lgSearch()">Search</button>
+            <button class="btn btn-ghost" onclick="lgSummary()">Per-flight summary</button>
+          </div>
+          <div id="lg-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><span class="bar"></span>Check in luggage</h3>
+            <div class="field"><label>Booking ID</label><input id="al-book" type="number"></div>
+            <div class="field"><label>Weight (kg)</label><input id="al-weight" type="number" step="0.1"></div>
+            <div class="field"><label>Security status</label>
+              <select id="al-status"><option>Cleared</option><option>Flagged</option></select>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="lgAdd()">Add luggage</button>
+            <p class="hint">Bags over 30 kg are rejected by the database.</p>
+          </div>
+          <div class="card">
+            <h3><span class="bar"></span>Update clearance</h3>
+            <div class="field"><label>Luggage ID</label><input id="ul-id" type="number"></div>
+            <div class="field"><label>New status</label>
+              <select id="ul-status"><option>Cleared</option><option>Flagged</option></select>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="lgUpdate()">Update status</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== GATES ===== -->
+      <section class="panel" id="p-gates">
+        <div class="page-head">
+          <div class="eyebrow">Ground</div>
+          <h2>Gates</h2>
+          <p>Monitor gate occupancy and update availability.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Find gates</h3>
+          <div class="row">
+            <div class="field"><label>Airport ID</label><input id="gt-airport" type="number"></div>
+            <div class="field"><label>Status</label>
+              <select id="gt-status"><option value="">Any</option><option>Available</option><option>Occupied</option><option>Maintenance</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="gtSearch()">Search</button>
+            <button class="btn btn-ghost" onclick="gtStatusView()">Flight-gate view</button>
+          </div>
+          <div id="gt-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Update gate status</h3>
+          <div class="row">
+            <div class="field"><label>Gate ID</label><input id="gu-id" type="number"></div>
+            <div class="field"><label>New status</label>
+              <select id="gu-status"><option>Available</option><option>Occupied</option><option>Maintenance</option></select>
+            </div>
+            <button class="btn btn-primary" onclick="gtUpdate()">Update</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== AIRPORTS & ROUTES ===== -->
+      <section class="panel" id="p-network">
+        <div class="page-head">
+          <div class="eyebrow">Network</div>
+          <h2>Airports &amp; routes</h2>
+          <p>Look up airports and the routes between them.</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><span class="bar"></span>Airports</h3>
+            <div class="row">
+              <div class="field"><label>Name, city or country</label><input id="ap-q" placeholder="e.g. Indira"></div>
+              <button class="btn btn-ghost" onclick="apSearch()">Search</button>
+              <button class="btn btn-ghost" onclick="apAll()">All</button>
+            </div>
+            <div id="ap-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+          </div>
+          <div class="card">
+            <h3><span class="bar"></span>Routes</h3>
+            <div class="row">
+              <div class="field"><label>Origin airport ID</label><input id="rt-origin" type="number"></div>
+              <div class="field"><label>Destination airport ID</label><input id="rt-dest" type="number"></div>
+              <button class="btn btn-ghost" onclick="rtSearch()">Search</button>
+            </div>
+            <div id="rt-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== STAFF ===== -->
+      <section class="panel" id="p-staff">
+        <div class="page-head">
+          <div class="eyebrow">Personnel</div>
+          <h2>Staff</h2>
+          <p>Find staff and assign them to scheduled flights.</p>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Search staff</h3>
+          <div class="row">
+            <div class="field"><label>Name, role or username</label><input id="st-q" placeholder="e.g. Prakash"></div>
+            <button class="btn btn-primary" onclick="stSearch()">Search</button>
+            <button class="btn btn-ghost" onclick="stFlightView()">Duty roster</button>
+          </div>
+          <div id="st-results" class="table-wrap" style="margin-top:14px"><div class="empty">No search yet.</div></div>
+        </div>
+        <div class="card">
+          <h3><span class="bar"></span>Assign to flight</h3>
+          <div class="grid-2">
+            <div class="field"><label>Staff ID</label><input id="sa-staff" type="number"></div>
+            <div class="field"><label>Route ID</label><input id="sa-route" type="number"></div>
+            <div class="field"><label>Flight ID</label><input id="sa-flight" type="number"></div>
+            <div class="field"><label>Flight date</label><input id="sa-date" type="date"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="stAssign()">Assign</button>
+          <p class="hint">Only ground staff or admin may manage flights — enforced by trigger.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ============================================================
+//  API helper
+// ============================================================
+const API = ''; // same origin
+let staff = null;
+
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  let data = null;
+  try { data = await res.json(); } catch (_) {}
+  if (!res.ok) {
+    const msg = (data && data.error) ? data.error : `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// ============================================================
+//  UI utilities
+// ============================================================
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : '');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; }, 3200);
+  setTimeout(() => el.remove(), 3600);
+}
+
+const STATUS_CLASS = {
+  On_Time: 'green', Available: 'green', Cleared: 'green', Confirmed: 'green',
+  Delayed: 'amber', Maintenance: 'amber', Flagged: 'amber',
+  Cancelled: 'red', Occupied: 'blue', Departed: 'slate',
+};
+function pill(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const cls = STATUS_CLASS[val] || 'slate';
+  return `<span class="pill ${cls}">${esc(val)}</span>`;
+}
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function prettyKey(k) {
+  return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+const ID_KEYS = /(_id$|^id$|passport|flight_no|gate_number|username)/i;
+const STATUS_KEYS = /status/i;
+
+function renderTable(containerId, rows, opts = {}) {
+  const box = document.getElementById(containerId);
+  if (!rows || rows.length === 0) { box.innerHTML = '<div class="empty">No records found.</div>'; return; }
+  const cols = Object.keys(rows[0]);
+  let html = '<table><thead><tr>';
+  cols.forEach(c => html += `<th>${esc(prettyKey(c))}</th>`);
+  if (opts.actions) html += '<th></th>';
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    cols.forEach(c => {
+      const v = r[c];
+      if (STATUS_KEYS.test(c) && typeof v === 'string' && STATUS_CLASS[v]) html += `<td>${pill(v)}</td>`;
+      else if (ID_KEYS.test(c)) html += `<td class="cell-id">${esc(v)}</td>`;
+      else html += `<td>${esc(v)}</td>`;
+    });
+    if (opts.actions) html += `<td>${opts.actions(r)}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  box.innerHTML = html;
+}
+
+// ============================================================
+//  Auth
+// ============================================================
+async function doLogin() {
+  const username = document.getElementById('lg-user').value.trim();
+  const password_hash = document.getElementById('lg-pass').value.trim();
+  if (!username || !password_hash) { toast('Enter username and password.', 'err'); return; }
+  try {
+    const row = await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password_hash }) });
+    staff = row;
+    document.getElementById('u-name').textContent = row.name || row.staff_name || username;
+    document.getElementById('u-role').textContent = row.role || 'staff';
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').classList.add('on');
+    loadDashboard();
+    toast('Signed in.', 'ok');
+  } catch (e) {
+    toast(e.message || 'Invalid credentials', 'err');
+  }
+}
+function logout() {
+  staff = null;
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('lg-pass').value = '';
+}
+
+// ============================================================
+//  Navigation
+// ============================================================
+document.getElementById('nav').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-panel]');
+  if (!btn) return;
+  document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.getElementById('p-' + btn.dataset.panel).classList.add('on');
+});
+
+// ============================================================
+//  Dashboard
+// ============================================================
+async function loadDashboard() {
+  try {
+    const flights = await api('/api/flights/route-view');
+    renderTable('dash-flights', flights.slice(0, 12));
+    const onTime = flights.filter(f => f.flight_status === 'On_Time').length;
+    const delayed = flights.filter(f => f.flight_status === 'Delayed').length;
+    const cancelled = flights.filter(f => f.flight_status === 'Cancelled').length;
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat"><div class="n">${flights.length}</div><div class="l">Scheduled flights</div></div>
+      <div class="stat g"><div class="n">${onTime}</div><div class="l">On time</div></div>
+      <div class="stat a"><div class="n">${delayed}</div><div class="l">Delayed</div></div>
+      <div class="stat r"><div class="n">${cancelled}</div><div class="l">Cancelled</div></div>`;
+  } catch (e) {
+    document.getElementById('dash-flights').innerHTML = `<div class="empty">Could not load schedule — ${esc(e.message)}</div>`;
+  }
+  try { renderTable('dash-gates', (await api('/api/gates/status-view')).slice(0, 8)); }
+  catch (e) { document.getElementById('dash-gates').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  try { renderTable('dash-bookings', (await api('/api/bookings/details')).slice(0, 8)); }
+  catch (e) { document.getElementById('dash-bookings').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ============================================================
+//  Passengers
+// ============================================================
+async function paxSearch() {
+  try { renderTable('pax-results', await api('/api/passengers/search?q=' + encodeURIComponent(document.getElementById('pax-q').value))); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function paxRegister() {
+  const body = {
+    name: v('pax-name'), email: v('pax-email'),
+    phone: v('pax-phone'), passport: v('pax-passport'),
+  };
+  if (!body.name) { toast('Name is required.', 'err'); return; }
+  try {
+    const r = await api('/api/passengers/register', { method: 'POST', body: JSON.stringify(body) });
+    toast(r.message || 'Passenger registered.', 'ok');
+    ['pax-name','pax-email','pax-phone','pax-passport'].forEach(id => document.getElementById(id).value = '');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Flights
+// ============================================================
+async function flByDate() {
+  const date = v('fl-date'), status = v('fl-status');
+  if (!date) { toast('Pick a flight date.', 'err'); return; }
+  try {
+    const path = status
+      ? `/api/flights/scheduled?date=${date}&status=${encodeURIComponent(status)}`
+      : `/api/flights/by-date?date=${date}`;
+    renderTable('fl-results', await api(path));
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function flRouteView() {
+  try { renderTable('fl-results', await api('/api/flights/route-view')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function flSearch() {
+  try { renderTable('fl-fleet', await api('/api/flights/search?q=' + encodeURIComponent(v('fl-q')))); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function flAll() {
+  try { renderTable('fl-fleet', await api('/api/flights')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function flStatus() {
+  const body = { route_id: v('fs-route'), flight_id: v('fs-flight'), flight_date: v('fs-date'), status: v('fs-status') };
+  if (!body.route_id || !body.flight_id || !body.flight_date) { toast('Route, flight and date are required.', 'err'); return; }
+  try { const r = await api('/api/flights/status', { method: 'PUT', body: JSON.stringify(body) }); toast(r.message || 'Status updated.', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Bookings
+// ============================================================
+async function bkSearch() {
+  const p = new URLSearchParams();
+  if (v('bk-pax')) p.set('passenger_id', v('bk-pax'));
+  if (v('bk-status')) p.set('status', v('bk-status'));
+  if (v('bk-date')) p.set('date', v('bk-date'));
+  try {
+    renderTable('bk-results', await api('/api/bookings/search?' + p.toString()), {
+      actions: r => r.booking_status === 'Confirmed'
+        ? `<button class="btn btn-danger btn-sm" onclick="bkCancel(${r.booking_id})">Cancel</button>` : ''
+    });
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function bkDetails() {
+  try { renderTable('bk-results', await api('/api/bookings/details')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function bkCreate() {
+  const body = { passenger_id: v('nb-pax'), route_id: v('nb-route'), flight_id: v('nb-flight'), flight_date: v('nb-date') };
+  if (!body.passenger_id || !body.route_id || !body.flight_id || !body.flight_date) { toast('All fields are required.', 'err'); return; }
+  try {
+    const r = await api('/api/bookings', { method: 'POST', body: JSON.stringify(body) });
+    toast('Booking confirmed — ID ' + r.booking_id, 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function bkCancel(id) {
+  try { const r = await api(`/api/bookings/${id}/cancel`, { method: 'PUT' }); toast(r.message || 'Booking cancelled.', 'ok'); bkSearch(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Boarding pass
+// ============================================================
+async function bpLookup() {
+  const id = v('bp-id');
+  if (!id) { toast('Enter a booking ID.', 'err'); return; }
+  try {
+    const bp = await api('/api/boarding-pass/' + id);
+    if (!bp) { document.getElementById('bp-out').innerHTML = '<div class="card"><div class="empty">No boarding pass for that booking.</div></div>'; return; }
+    document.getElementById('bp-out').innerHTML = `
+      <div class="bp">
+        <div class="bp-main">
+          <div class="bp-tag">BOARDING PASS · ${esc(bp.flight_no)}</div>
+          <div class="bp-route">
+            <span class="code">${esc((bp.from_airport||'').slice(0,3).toUpperCase())}</span>
+            <span class="arrow">✈</span>
+            <span class="code">${esc((bp.to_airport||'').slice(0,3).toUpperCase())}</span>
+          </div>
+          <div class="bp-grid">
+            <div><div class="k">Passenger</div><div class="v">${esc(bp.passenger_name)}</div></div>
+            <div><div class="k">Date</div><div class="v">${esc(bp.flight_date)}</div></div>
+            <div><div class="k">Passport</div><div class="v">${esc(bp.passport_number)}</div></div>
+            <div><div class="k">Departs</div><div class="v">${esc(bp.departure_time)}</div></div>
+            <div><div class="k">Arrives</div><div class="v">${esc(bp.arrival_time)}</div></div>
+            <div><div class="k">Boarding</div><div class="v">${esc(bp.boarding_time)}</div></div>
+          </div>
+        </div>
+        <div class="bp-stub">
+          <div>
+            <div class="k">Gate</div><div class="v">${esc(bp.gate_number)}</div>
+            <div class="k">Group</div><div class="v">${esc(bp.boarding_group)}</div>
+          </div>
+          <div>
+            <div class="k">Seat</div>
+            <div class="seat">${esc(bp.seat_number)}</div>
+          </div>
+        </div>
+      </div>`;
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Luggage
+// ============================================================
+async function lgSearch() {
+  const p = new URLSearchParams();
+  if (v('lg-book')) p.set('booking_id', v('lg-book'));
+  if (v('lg-status')) p.set('status', v('lg-status'));
+  try {
+    renderTable('lg-results', await api('/api/luggage/search?' + p.toString()), {
+      actions: r => `<button class="btn btn-ghost btn-sm" onclick="quickClear(${r.luggage_id})">Clear</button>`
+    });
+  } catch (e) { toast(e.message, 'err'); }
+}
+async function lgSummary() {
+  try { renderTable('lg-results', await api('/api/luggage/summary')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function lgAdd() {
+  const body = { booking_id: v('al-book'), weight: v('al-weight'), status: v('al-status') };
+  if (!body.booking_id || !body.weight) { toast('Booking ID and weight are required.', 'err'); return; }
+  try { const r = await api('/api/luggage', { method: 'POST', body: JSON.stringify(body) }); toast(r.message || 'Luggage added.', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function lgUpdate() {
+  const id = v('ul-id');
+  if (!id) { toast('Enter a luggage ID.', 'err'); return; }
+  try { const r = await api(`/api/luggage/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: v('ul-status') }) }); toast(r.message || 'Status updated.', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function quickClear(id) {
+  try { await api(`/api/luggage/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: 'Cleared' }) }); toast('Luggage cleared.', 'ok'); lgSearch(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Gates
+// ============================================================
+async function gtSearch() {
+  const p = new URLSearchParams();
+  if (v('gt-airport')) p.set('airport_id', v('gt-airport'));
+  if (v('gt-status')) p.set('status', v('gt-status'));
+  try { renderTable('gt-results', await api('/api/gates/search?' + p.toString())); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function gtStatusView() {
+  try { renderTable('gt-results', await api('/api/gates/status-view')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function gtUpdate() {
+  const id = v('gu-id');
+  if (!id) { toast('Enter a gate ID.', 'err'); return; }
+  try { const r = await api(`/api/gates/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: v('gu-status') }) }); toast(r.message || 'Gate updated.', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Airports & routes
+// ============================================================
+async function apSearch() {
+  try { renderTable('ap-results', await api('/api/airports/search?q=' + encodeURIComponent(v('ap-q')))); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function apAll() {
+  try { renderTable('ap-results', await api('/api/airports')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function rtSearch() {
+  const o = v('rt-origin'), d = v('rt-dest');
+  if (!o || !d) { toast('Enter origin and destination IDs.', 'err'); return; }
+  try { renderTable('rt-results', await api(`/api/routes/search?origin=${o}&destination=${d}`)); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Staff
+// ============================================================
+async function stSearch() {
+  try { renderTable('st-results', await api('/api/staff/search?q=' + encodeURIComponent(v('st-q')))); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function stFlightView() {
+  try { renderTable('st-results', await api('/api/staff/flight-view')); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function stAssign() {
+  const body = { staff_id: v('sa-staff'), route_id: v('sa-route'), flight_id: v('sa-flight'), flight_date: v('sa-date') };
+  if (!body.staff_id || !body.route_id || !body.flight_id || !body.flight_date) { toast('All fields are required.', 'err'); return; }
+  try { const r = await api('/api/staff/assign', { method: 'POST', body: JSON.stringify(body) }); toast(r.message || 'Staff assigned.', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ============================================================
+//  Small helpers + chrome
+// ============================================================
+function v(id) { return document.getElementById(id).value.trim(); }
+
+// Departure-board header
+const BOARD = 'DEPARTURES';
+document.getElementById('board').innerHTML = BOARD.split('').map(c => `<span>${c}</span>`).join('');
+
+// Clock
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().slice(0, 8) + ' LT';
+}
+tick(); setInterval(tick, 1000);
+
+// Enter-to-login
+document.getElementById('lg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

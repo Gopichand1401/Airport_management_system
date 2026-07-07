@@ -20,7 +20,7 @@ const pool = new Pool({
     port:     process.env.DB_PORT     || 5432,
     database: process.env.DB_NAME     || 'AirportManagementsystem',
     user:     process.env.DB_USER     || 'postgres',
-    password: process.env.DB_PASSWORD || 'your_password',
+    password: process.env.DB_PASSWORD || 'postgres',
 });
 
 // Helper
